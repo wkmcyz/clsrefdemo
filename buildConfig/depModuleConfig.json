@@ -1,0 +1,10 @@
+[
+  {
+    "module": "lib1",
+    "useAar": true
+  },
+  {
+    "module": "lib2",
+    "useAar": true
+  }
+]

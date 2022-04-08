@@ -1,0 +1,28 @@
+import builder.config.dep.DepResolveModuleConfigResolver
+
+// 替换哪些需要使用 aar 依赖的。
+subprojects { Project p ->
+    repositories {
+        //模块aar所在的repo
+
+        //远程
+        maven { url "http://maven.zhenguanyu.com/content/repositories/snapshots" }
+        maven { url "http://maven.zhenguanyu.com/content/repositories/releases" }
+        //本地
+        maven { url "file://${rootProject.buildDir.absolutePath}/repo/snapshots" }
+        maven { url "file://${rootProject.buildDir.absolutePath}/repo/releases" }
+    }
+
+    // for parseDependencyTask 任务
+    project.afterEvaluate {
+        project.apply plugin: "com.zebra.gradle.aar.process"
+    }
+    // publish 和普通构建使用的配置项不同。
+    if (p.hasProperty("ZEBRA_PUBLISH_BUILD") && p.property("ZEBRA_PUBLISH_BUILD") == "true") {
+        p.apply from: file("${p.rootDir}/buildConfig/pubRepo/configPublishModuleVersion.gradle")
+    } else {
+        if (DepResolveModuleConfigResolver.enabled) {
+            p.apply from: file("${p.rootDir}/buildConfig/pubRepo/configModuleDep.gradle")
+        }
+    }
+}

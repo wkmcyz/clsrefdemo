@@ -1,0 +1,46 @@
+import builder.config.publish.PublishModuleConfigResolver
+import utils.Git
+
+LinkedHashMap<String, String> publishInfo = PublishModuleConfigResolver.getPublishInfo()
+
+String repoName = project.name
+
+if (!publishInfo.containsKey(repoName)) {
+    return
+}
+
+/**
+ * -------- 下面是配置 publish 相关的
+ * 该操作会使得 " publish 的时候,依赖的 project 被解析成对应的 aar 版本 "
+ * 参考 https://docs.gradle.org/current/userguide/publishing_maven.html#publishing_maven:resolved_dependencies
+ */
+project.afterEvaluate {
+    apply plugin: 'com.zebra.publish.plugin'
+
+    zebraPublish {
+        groupId = "com.zebra.android.component"
+        artifactId = repoName
+        version = publishInfo[repoName]
+        scmConnection = "scm:git:ssh://gerrit.zhenguanyu.com:29418/ape-zebraenglish-android/$repoName"
+        scmUrl = "https://gerrit.zhenguanyu.com/admin/repos/ape-zebraenglish-android/$repoName"
+        //可根据description的链接确定工件对应的代码版本
+        description = "https://gerrit.zhenguanyu.com/plugins/gitiles/ape-zebraenglish-android/+/${Git.INSTANCE.currentCommitHash}"
+        //远程
+        releaseMavenUrl = "http://maven.zhenguanyu.com/content/repositories/cache"
+        snapshotMavenUrl = "http://maven.zhenguanyu.com/content/repositories/snapshots"
+        //本地
+//    releaseMavenUrl = "file://${rootProject.buildDir.absolutePath}/repo/releases"
+//    snapshotMavenUrl = "file://${rootProject.buildDir.absolutePath}/repo/snapshots"
+        nexusUserName = project.hasProperty("NEXUS_USERNAME") ? project.property("NEXUS_USERNAME") : ""
+        nexusPassword = project.hasProperty("NEXUS_PASSWORD") ? project.property("NEXUS_PASSWORD") : ""
+    }
+}
+
+//skip tasks
+project.gradle.taskGraph.whenReady {
+    project.tasks.each { task ->
+        if (task.name.contains("verifyReleaseResources")) {
+            task.enabled = false
+        }
+    }
+}

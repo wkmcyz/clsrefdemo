@@ -1,0 +1,28 @@
+import builder.config.dep.DepResolveModuleConfigResolver
+
+LinkedHashMap<String, Boolean> useAarMap = DepResolveModuleConfigResolver.getModuleUseAarMapFromRootDir(getRootDir())
+LinkedHashMap<String, String> repoVersionMap = DepResolveModuleConfigResolver.getModuleVersionMapFromRootDir(getRootDir())
+
+project.configurations.all {
+    resolutionStrategy {
+        // 设置不缓存对 snapshot 的依赖
+        cacheChangingModulesFor 1, 'seconds'
+
+        useAarMap.each { String name, Boolean toRepo ->
+            if (toRepo == Boolean.TRUE && repoVersionMap[name] != null) {
+                //哪些模块的依赖应该替换成aar
+                dependencySubstitution {
+                    substitute project(":$name") with module("com.zebra.android.component:$name:${repoVersionMap[name]}")
+                }
+                force "com.zebra.android.component:$name:${repoVersionMap[name]}"
+            } else {
+                if (project.plugins.hasPlugin("com.android.library") || project.plugins.hasPlugin("com.android.application") || project.plugins.hasPlugin("java-library")) {
+                    //哪些aar的依赖应该替换成模块
+                    dependencySubstitution {
+                        substitute module("com.zebra.android.component:$name") with project(":$name")
+                    }
+                }
+            }
+        }
+    }
+}
